@@ -7,14 +7,17 @@ console.log("Starting command deployment...");
 // ================= COMMANDS =================
 const commands = [
 
+    // ===== CHECK =====
     new SlashCommandBuilder()
         .setName('check')
         .setDescription('Check Roblox version'),
 
+    // ===== HELP =====
     new SlashCommandBuilder()
         .setName('help')
         .setDescription('Show help menu'),
 
+    // ===== MEMBERS =====
     new SlashCommandBuilder()
         .setName('members')
         .setDescription('Get server member count'),
@@ -35,7 +38,7 @@ const commands = [
         .setDescription('Unban a user')
         .addStringOption(option =>
             option.setName('userid')
-                .setDescription('User ID to unban')
+                .setDescription('User ID')
                 .setRequired(true)
         ),
 
@@ -67,14 +70,54 @@ const commands = [
     // ===== INVITE =====
     new SlashCommandBuilder()
         .setName('invite')
-        .setDescription('Send server invite in DMs')
+        .setDescription('Send invite in DM')
         .addStringOption(option =>
             option.setName('userid')
                 .setDescription('User ID')
                 .setRequired(true)
         ),
 
-    // ===== APPS =====
+    // ===== DM =====
+    new SlashCommandBuilder()
+        .setName('dm')
+        .setDescription('DM a member')
+        .addUserOption(option =>
+            option.setName('user')
+                .setDescription('User')
+                .setRequired(true)
+        )
+        .addStringOption(option =>
+            option.setName('message')
+                .setDescription('Message')
+                .setRequired(true)
+        ),
+
+    // ===== DM ALL =====
+    new SlashCommandBuilder()
+        .setName('dm_all')
+        .setDescription('DM all members')
+        .addStringOption(option =>
+            option.setName('message')
+                .setDescription('Message')
+                .setRequired(true)
+        ),
+
+    // ===== ANNOUNCE =====
+    new SlashCommandBuilder()
+        .setName('announce')
+        .setDescription('Send announcement')
+        .addChannelOption(option =>
+            option.setName('channel')
+                .setDescription('Channel')
+                .setRequired(true)
+        )
+        .addStringOption(option =>
+            option.setName('message')
+                .setDescription('Message')
+                .setRequired(true)
+        ),
+
+    // ===== ADD APP =====
     new SlashCommandBuilder()
         .setName('add_app')
         .setDescription('Add an app')
@@ -84,19 +127,22 @@ const commands = [
                 .setRequired(true)
         ),
 
+    // ===== LIST APPS =====
     new SlashCommandBuilder()
         .setName('list_apps')
         .setDescription('List all apps'),
 
+    // ===== REMOVE APP =====
     new SlashCommandBuilder()
         .setName('remove_app')
-        .setDescription('Remove app by index')
+        .setDescription('Remove app')
         .addIntegerOption(option =>
             option.setName('index')
                 .setDescription('App index')
                 .setRequired(true)
         ),
 
+    // ===== RENAME APP =====
     new SlashCommandBuilder()
         .setName('rename_app')
         .setDescription('Rename app')
@@ -111,6 +157,7 @@ const commands = [
                 .setRequired(true)
         ),
 
+    // ===== SET STATUS =====
     new SlashCommandBuilder()
         .setName('set_status')
         .setDescription('Set app status')
@@ -124,14 +171,8 @@ const commands = [
                 .setDescription('online/offline/updating')
                 .setRequired(true)
         ),
-        new SlashCommandBuilder()
-    .setName('dm_all')
-    .setDescription('DM all server members')
-    .addStringOption(option =>
-        option.setName('message')
-            .setDescription('Message to send')
-            .setRequired(true)
-    ),
+
+    // ===== BULK STATUS =====
     new SlashCommandBuilder()
         .setName('bulk_status')
         .setDescription('Set all apps status')
@@ -141,6 +182,7 @@ const commands = [
                 .setRequired(true)
         ),
 
+    // ===== SET ANNOUNCEMENT =====
     new SlashCommandBuilder()
         .setName('set_announcement')
         .setDescription('Set app announcement')
@@ -151,32 +193,34 @@ const commands = [
         )
         .addStringOption(option =>
             option.setName('text')
-                .setDescription('Announcement text')
+                .setDescription('Announcement')
                 .setRequired(true)
         )
 
 ].map(cmd => cmd.toJSON());
 
-// ================= REST SETUP =================
+// ================= REST =================
 const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
 
 // ================= DEPLOY =================
 (async () => {
+
     try {
 
-        console.log("Deploying commands...");
+        console.log("Deploying global commands...");
 
         await rest.put(
-            Routes.applicationGuildCommands(
-                process.env.CLIENT_ID,
-                process.env.GUILD_ID
+            Routes.applicationCommands(
+                process.env.CLIENT_ID
             ),
             { body: commands }
         );
 
-        console.log("Commands deployed successfully!");
+        console.log("Commands deployed globally!");
 
     } catch (err) {
-        console.error("Failed to deploy commands:", err);
+
+        console.error("Deploy error:", err);
     }
+
 })();

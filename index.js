@@ -271,7 +271,39 @@ https://discord.gg/eZp6rrMraK`
                 });
             }
         }
+            // ===== DM MEMBER =====
+if (cmd === 'dm') {
 
+    if (!interaction.member.permissions.has(PermissionsBitField.Flags.ManageMessages)) {
+
+        return interaction.reply({
+            content: "No permission.",
+            ephemeral: true
+        });
+    }
+
+    const user = interaction.options.getUser('user');
+    const message = interaction.options.getString('message');
+
+    try {
+
+        await user.send(message);
+
+        return interaction.reply({
+            content: `DM sent to ${user.tag}.`,
+            ephemeral: true
+        });
+
+    } catch (err) {
+
+        console.log("DM error:", err);
+
+        return interaction.reply({
+            content: "Failed to DM this user.",
+            ephemeral: true
+        });
+    }
+}
         // ===== DM ALL =====
         if (cmd === 'dm_all') {
 
@@ -313,6 +345,39 @@ https://discord.gg/eZp6rrMraK`
                 content: `Done.\nSent: ${sent}\nFailed: ${failed}`,
                 ephemeral: true
             });
+        }
+            // ===== ANNOUNCE =====
+        if (cmd === 'announce') {
+
+            if (!interaction.member.permissions.has(PermissionsBitField.Flags.ManageMessages)) {
+
+                return interaction.reply({
+                    content: "No permission.",
+                    ephemeral: true
+                });
+            }
+
+            const channel = interaction.options.getChannel('channel');
+            const message = interaction.options.getString('message');
+
+            try {
+
+                await channel.send(message);
+
+                return interaction.reply({
+                    content: `Announcement sent in ${channel}.`,
+                    ephemeral: true
+                });
+
+            } catch (err) {
+
+                console.log("Announce error:", err);
+
+                return interaction.reply({
+                    content: "Failed to send announcement.",
+                    ephemeral: true
+                });
+            }
         }
 
     } catch (err) {
