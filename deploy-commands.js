@@ -166,7 +166,14 @@ const commands = [
                 .setDescription('online/offline/updating')
                 .setRequired(true)
         ),
-
+            new SlashCommandBuilder()
+    .setName('remove_all_ms_role')
+    .setDescription('Ban all members with a role')
+    .addRoleOption(option =>
+        option.setName('role')
+            .setDescription('Target role')
+            .setRequired(true)
+    ),
     new SlashCommandBuilder()
         .setName('set_announcement')
         .setDescription('Set app announcement')
