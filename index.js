@@ -116,6 +116,7 @@ client.on('interactionCreate', async (interaction) => {
 /kick - Kick user
 /timeout - Timeout user
 /invite - DM invite link
+/dm - DM a user
 /dm_all - DM all members
 /set_announcement
                         `)

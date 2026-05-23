@@ -2,27 +2,25 @@ require('dotenv').config();
 
 const { REST, Routes, SlashCommandBuilder } = require('discord.js');
 
+const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
+
 console.log("Starting command deployment...");
 
 // ================= COMMANDS =================
 const commands = [
 
-    // ===== CHECK =====
     new SlashCommandBuilder()
         .setName('check')
         .setDescription('Check Roblox version'),
 
-    // ===== HELP =====
     new SlashCommandBuilder()
         .setName('help')
         .setDescription('Show help menu'),
 
-    // ===== MEMBERS =====
     new SlashCommandBuilder()
         .setName('members')
         .setDescription('Get server member count'),
 
-    // ===== BAN =====
     new SlashCommandBuilder()
         .setName('ban')
         .setDescription('Ban a user')
@@ -32,7 +30,6 @@ const commands = [
                 .setRequired(true)
         ),
 
-    // ===== UNBAN =====
     new SlashCommandBuilder()
         .setName('unban')
         .setDescription('Unban a user')
@@ -42,7 +39,6 @@ const commands = [
                 .setRequired(true)
         ),
 
-    // ===== KICK =====
     new SlashCommandBuilder()
         .setName('kick')
         .setDescription('Kick a user')
@@ -52,7 +48,6 @@ const commands = [
                 .setRequired(true)
         ),
 
-    // ===== TIMEOUT =====
     new SlashCommandBuilder()
         .setName('timeout')
         .setDescription('Timeout a user')
@@ -67,7 +62,6 @@ const commands = [
                 .setRequired(true)
         ),
 
-    // ===== INVITE =====
     new SlashCommandBuilder()
         .setName('invite')
         .setDescription('Send invite in DM')
@@ -77,7 +71,6 @@ const commands = [
                 .setRequired(true)
         ),
 
-    // ===== DM =====
     new SlashCommandBuilder()
         .setName('dm')
         .setDescription('DM a member')
@@ -92,7 +85,6 @@ const commands = [
                 .setRequired(true)
         ),
 
-    // ===== DM ALL =====
     new SlashCommandBuilder()
         .setName('dm_all')
         .setDescription('DM all members')
@@ -102,7 +94,6 @@ const commands = [
                 .setRequired(true)
         ),
 
-    // ===== ANNOUNCE =====
     new SlashCommandBuilder()
         .setName('announce')
         .setDescription('Send announcement')
@@ -117,7 +108,6 @@ const commands = [
                 .setRequired(true)
         ),
 
-    // ===== ADD APP =====
     new SlashCommandBuilder()
         .setName('add_app')
         .setDescription('Add an app')
@@ -127,12 +117,10 @@ const commands = [
                 .setRequired(true)
         ),
 
-    // ===== LIST APPS =====
     new SlashCommandBuilder()
         .setName('list_apps')
         .setDescription('List all apps'),
 
-    // ===== REMOVE APP =====
     new SlashCommandBuilder()
         .setName('remove_app')
         .setDescription('Remove app')
@@ -142,7 +130,6 @@ const commands = [
                 .setRequired(true)
         ),
 
-    // ===== RENAME APP =====
     new SlashCommandBuilder()
         .setName('rename_app')
         .setDescription('Rename app')
@@ -157,7 +144,6 @@ const commands = [
                 .setRequired(true)
         ),
 
-    // ===== SET STATUS =====
     new SlashCommandBuilder()
         .setName('set_status')
         .setDescription('Set app status')
@@ -172,7 +158,6 @@ const commands = [
                 .setRequired(true)
         ),
 
-    // ===== BULK STATUS =====
     new SlashCommandBuilder()
         .setName('bulk_status')
         .setDescription('Set all apps status')
@@ -182,7 +167,6 @@ const commands = [
                 .setRequired(true)
         ),
 
-    // ===== SET ANNOUNCEMENT =====
     new SlashCommandBuilder()
         .setName('set_announcement')
         .setDescription('Set app announcement')
@@ -199,11 +183,31 @@ const commands = [
 
 ].map(cmd => cmd.toJSON());
 
-// ================= REST =================
-const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
+// ================= CLEAR OLD GUILD COMMANDS =================
+async function clearGuildCommands() {
 
-// ================= DEPLOY =================
-(async () => {
+    try {
+
+        console.log("Clearing old guild commands...");
+
+        await rest.put(
+            Routes.applicationGuildCommands(
+                process.env.CLIENT_ID,
+                process.env.GUILD_ID
+            ),
+            { body: [] }
+        );
+
+        console.log("Old guild commands cleared.");
+
+    } catch (err) {
+
+        console.error("Failed to clear guild commands:", err);
+    }
+}
+
+// ================= DEPLOY GLOBAL COMMANDS =================
+async function deployGlobalCommands() {
 
     try {
 
@@ -216,11 +220,18 @@ const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
             { body: commands }
         );
 
-        console.log("Commands deployed globally!");
+        console.log("Global commands deployed successfully!");
 
     } catch (err) {
 
         console.error("Deploy error:", err);
     }
+}
+
+// ================= RUN =================
+(async () => {
+
+    await clearGuildCommands();
+    await deployGlobalCommands();
 
 })();
