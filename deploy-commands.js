@@ -168,7 +168,7 @@ const commands = [
         ),
             new SlashCommandBuilder()
     .setName('remove_all_ms_role')
-    .setDescription('Ban all members with a role')
+    .setDescription('Remove the selected role from all members')
     .addRoleOption(option =>
         option.setName('role')
             .setDescription('Target role')

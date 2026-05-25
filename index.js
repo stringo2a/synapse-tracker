@@ -8,6 +8,7 @@ const {
 } = require('discord.js');
 
 const axios = require('axios');
+const fs = require('fs');
 
 const client = new Client({
     intents: [
@@ -18,13 +19,22 @@ const client = new Client({
     ]
 });
 
+// ================= APIs =================
 const VERSION_API =
     'https://clientsettings.roblox.com/v2/client-version/WindowsPlayer';
+
+const VELOCITY_API =
+    'https://realvelocity.xyz/assets/current_version.txt';
+
+// ================= FILE =================
+const VERSION_FILE = './velocity_version.txt';
 
 let previousVersion = null;
 
 // ================= SETTINGS =================
 const OLD_MEMBER_ROLE_NAME = "Old Member";
+
+// 5 months
 const FIVE_MONTHS = 1000 * 60 * 60 * 24 * 150;
 
 console.log("Bot starting...");
@@ -35,9 +45,12 @@ async function checkRobloxUpdate() {
     try {
 
         const res = await axios.get(VERSION_API);
-        const currentVersion = res.data.clientVersionUpload;
+
+        const currentVersion =
+            res.data.clientVersionUpload;
 
         if (!previousVersion) {
+
             previousVersion = currentVersion;
             return;
         }
@@ -48,19 +61,43 @@ async function checkRobloxUpdate() {
                 .setColor('Red')
                 .setTitle('🔴 Roblox Updated')
                 .addFields(
-                    { name: 'Previous', value: previousVersion, inline: true },
-                    { name: 'Current', value: currentVersion, inline: true }
+                    {
+                        name: 'Previous',
+                        value: previousVersion,
+                        inline: true
+                    },
+                    {
+                        name: 'Current',
+                        value: currentVersion,
+                        inline: true
+                    }
                 )
                 .setTimestamp();
 
-            client.guilds.cache.forEach(guild => {
+            client.guilds.cache.forEach(async guild => {
 
-                const channel = guild.channels.cache.find(
-                    c => c.name === "announcements"
-                );
+                const channel =
+                    guild.channels.cache.find(
+                        c => c.name === "announcements"
+                    );
 
                 if (channel) {
-                    channel.send({ embeds: [embed] });
+
+                    channel.send({
+                        embeds: [embed]
+                    });
+                }
+
+                const workingChannel =
+                    guild.channels.cache.find(
+                        c => c.name === "working"
+                    );
+
+                if (workingChannel) {
+
+                    await workingChannel.setName(
+                        "patched"
+                    );
                 }
             });
 
@@ -69,122 +106,308 @@ async function checkRobloxUpdate() {
 
     } catch (err) {
 
-        console.log("Roblox check error:", err.message);
+        console.log(
+            "Roblox check error:",
+            err.message
+        );
+    }
+}
+
+// ================= VELOCITY UPDATE CHECK =================
+async function checkVelocityUpdate() {
+
+    try {
+
+        const velocityRes =
+            await axios.get(VELOCITY_API);
+
+        const currentVelocityVersion =
+            velocityRes.data.trim();
+
+        if (!fs.existsSync(VERSION_FILE)) {
+
+            fs.writeFileSync(
+                VERSION_FILE,
+                currentVelocityVersion
+            );
+
+            console.log(
+                `Saved first version: ${currentVelocityVersion}`
+            );
+
+            return;
+        }
+
+        const savedVersion =
+            fs.readFileSync(
+                VERSION_FILE,
+                'utf8'
+            ).trim();
+
+        if (savedVersion === currentVelocityVersion) {
+
+            console.log(
+                `Current version: ${currentVelocityVersion}`
+            );
+
+            return;
+        }
+
+        const robloxRes =
+            await axios.get(VERSION_API);
+
+        const robloxVersion =
+            robloxRes.data.clientVersionUpload;
+
+        const embed = new EmbedBuilder()
+            .setColor('#57F287')
+            .setTitle('✅ Synapse X Updated!')
+            .setDescription(
+                'Relaunch Synapse or grab a fresh install in #synapse-v2'
+            )
+            .addFields(
+                {
+                name: ':rocket: Velocity Version',
+                value:
+                `\`${currentVelocityVersion}\``,
+                inline: true
+                },
+                {
+                name: ':video_game: Supported Roblox Version',
+                value:
+                `\`${robloxVersion}\``,
+                inline: true
+                },
+                {
+                 name: ':clipboard: Reason',
+                value:
+                `Velocity updated from \`${savedVersion}\` to \`${currentVelocityVersion}\``
+                },
+                {
+                name: ':pencil: Changelog',
+                value:
+                'Updated for the latest Roblox'
+                }
+            )
+            .setFooter({
+                text: 'realvelocity.xyz'
+            })
+            .setTimestamp();
+
+        client.guilds.cache.forEach(async guild => {
+
+            const channel =
+                guild.channels.cache.find(
+                    c => c.name === 'syn-changelogs'
+                );
+
+            if (channel) {
+
+                channel.send({
+                    embeds: [embed]
+                });
+            }
+
+            const patchedChannel =
+                guild.channels.cache.find(
+                    c => c.name === "patched"
+                );
+
+            if (patchedChannel) {
+
+                await patchedChannel.setName(
+                    "working"
+                );
+            }
+        });
+
+        fs.writeFileSync(
+            VERSION_FILE,
+            currentVelocityVersion
+        );
+
+        console.log(
+            `Updated from ${savedVersion} to ${currentVelocityVersion}`
+        );
+
+    } catch (err) {
+
+        console.log(
+            'Velocity update error:',
+            err.message
+        );
     }
 }
 
 // ================= OLD MEMBER CHECK =================
 async function checkOldMembers() {
 
-    client.guilds.cache.forEach(async (guild) => {
+    for (const guild of client.guilds.cache.values()) {
 
         try {
 
             await guild.members.fetch();
 
-            let role = guild.roles.cache.find(
-                r => r.name === OLD_MEMBER_ROLE_NAME
-            );
+            let role =
+                guild.roles.cache.find(
+                    r => r.name === OLD_MEMBER_ROLE_NAME
+                );
 
             if (!role) {
 
-                role = await guild.roles.create({
-                    name: OLD_MEMBER_ROLE_NAME,
-                    color: 'Gold'
-                });
+                role =
+                    await guild.roles.create({
+                        name: OLD_MEMBER_ROLE_NAME,
+                        color: 'Gold'
+                    });
             }
 
-            guild.members.cache.forEach(async (member) => {
+            for (const member of guild.members.cache.values()) {
 
-                if (member.user.bot) return;
+                if (member.user.bot) continue;
 
-                if (member.roles.cache.has(role.id)) return;
+                if (
+                    member.roles.cache.has(role.id)
+                ) continue;
 
-                const joinedAt = member.joinedAt;
+                if (!member.joinedAt) continue;
 
-                if (!joinedAt) return;
-
-                const timeInServer = Date.now() - joinedAt.getTime();
+                const timeInServer =
+                    Date.now() -
+                    member.joinedAt.getTime();
 
                 if (timeInServer >= FIVE_MONTHS) {
 
-                    try {
-
-                        await member.roles.add(role);
-
-                        console.log(
-                            `Added Old Member to ${member.user.tag}`
-                        );
-
-                    } catch (err) {
-
-                        console.log(
-                            `Failed to add role to ${member.user.tag}`
-                        );
-                    }
+                    await member.roles.add(role);
                 }
-            });
+            }
 
         } catch (err) {
 
-            console.log("Old member check error:", err);
+            console.log(err);
         }
-    });
+    }
 }
 
 // ================= READY =================
-client.once('clientReady', () => {
+client.once('ready', async () => {
 
-    console.log(`${client.user.tag} is online`);
+    console.log(
+        `${client.user.tag} is online`
+    );
 
     client.user.setStatus('idle');
 
     checkRobloxUpdate();
-    setInterval(checkRobloxUpdate, 60000);
+    setInterval(
+        checkRobloxUpdate,
+        60000
+    );
 
-    checkOldMembers();
-    setInterval(checkOldMembers, 60 * 60 * 1000);
+    checkVelocityUpdate();
+    setInterval(
+        checkVelocityUpdate,
+        60000
+    );
+
+    await checkOldMembers();
+
+    setInterval(
+        checkOldMembers,
+        60 * 60 * 1000
+    );
 });
 
-// ================= CRASH DETECTION =================
-client.on('messageCreate', async (message) => {
+// ================= MESSAGE EVENTS =================
+client.on(
+    'messageCreate',
+    async (message) => {
 
-    if (message.author.bot) return;
+        if (message.author.bot) return;
 
-    if (message.channel.name !== 'support-issues') return;
+        // ===== CRASH DETECTION =====
+        if (
+            message.channel.name ===
+            'support-issues'
+        ) {
 
-    const crashRegex = /\b(crash|crashing|crashed)\b/i;
+            const crashRegex =
+                /\b(crash|crashing|crashed)\b/i;
 
-    if (crashRegex.test(message.content)) {
+            if (
+                crashRegex.test(
+                    message.content
+                )
+            ) {
 
-        await message.reply(
+                await message.reply(
 `If *Roblox* is **crashing** after injection or execution, that might be a **Velocity API issue** or **Synapse might be down!**
 [Quick Fix](https://discord.com/channels/1441199616266862737/1497926569363116175/1497928254894510181)
 -# Reinstall Roblox if issues persist.`
-        );
+                );
+            }
+        }
+
+        // ===== SAY-HI SOFTBAN =====
+        if (
+            message.channel.name ===
+            'say-hi'
+        ) {
+
+            try {
+
+                const member =
+                    message.member;
+
+                await member.ban({
+                    deleteMessageSeconds: 604800
+                });
+
+                await message.guild.members.unban(
+                    member.user.id
+                );
+
+            } catch (err) {
+
+                console.log(
+                    'Softban error:',
+                    err.message
+                );
+            }
+        }
     }
-});
+);
 
 // ================= COMMANDS =================
-client.on('interactionCreate', async (interaction) => {
+client.on(
+    'interactionCreate',
+    async (interaction) => {
 
-    try {
+        try {
 
-        if (!interaction.isChatInputCommand()) return;
+            if (
+                !interaction.isChatInputCommand()
+            ) return;
 
-        const cmd = interaction.commandName;
+            const cmd =
+                interaction.commandName;
 
-        // ===== HELP =====
-        if (cmd === 'help') {
+            // ===== HELP =====
+            if (cmd === 'help') {
 
-            return interaction.reply({
-                embeds: [
-                    new EmbedBuilder()
-                        .setTitle("Help Menu")
-                        .setColor("Blue")
-                        .setDescription(`
+                return interaction.reply({
+                    embeds: [
+                        new EmbedBuilder()
+                            .setTitle(
+                                "Help Menu"
+                            )
+                            .setColor(
+                                "Blue"
+                            )
+                            .setDescription(`
 /check
 /help
+/members
 /ban
 /unban
 /kick
@@ -194,141 +417,140 @@ client.on('interactionCreate', async (interaction) => {
 /dm_all
 /announce
 /remove_all_ms_role
-                        `)
-                ]
-            });
-        }
-
-        // ===== CHECK =====
-        if (cmd === 'check') {
-
-            const res = await axios.get(VERSION_API);
-
-            return interaction.reply({
-                content: `Roblox Version: \`${res.data.clientVersionUpload}\``
-            });
-        }
-
-        // ===== BAN =====
-        if (cmd === 'ban') {
-
-            if (!interaction.member.permissions.has(PermissionsBitField.Flags.BanMembers)) {
-
-                return interaction.reply({
-                    content: "No permission.",
-                    ephemeral: true
+                            `)
+                    ]
                 });
             }
 
-            const user = interaction.options.getUser('user');
-            const member = await interaction.guild.members.fetch(user.id);
-
-            await member.ban();
-
-            return interaction.reply(`${user.tag} banned.`);
-        }
-
-        // ===== UNBAN =====
-        if (cmd === 'unban') {
-
-            if (!interaction.member.permissions.has(PermissionsBitField.Flags.BanMembers)) {
+            // ===== MEMBERS =====
+            if (cmd === 'members') {
 
                 return interaction.reply({
-                    content: "No permission.",
-                    ephemeral: true
+                    embeds: [
+                        new EmbedBuilder()
+                            .setTitle(
+                                "Server Members"
+                            )
+                            .setColor(
+                                "Green"
+                            )
+                            .setDescription(
+`👥 Total Members: **${interaction.guild.memberCount}**`
+                            )
+                    ]
                 });
             }
 
-            const userId = interaction.options.getString('userid');
+            // ===== CHECK =====
+            if (cmd === 'check') {
 
-            try {
-
-                await interaction.guild.members.unban(userId);
-
-                return interaction.reply({
-                    content: `Unbanned user ID: ${userId}`
-                });
-
-            } catch {
+                const res =
+                    await axios.get(
+                        VERSION_API
+                    );
 
                 return interaction.reply({
-                    content: "Failed to unban user.",
-                    ephemeral: true
-                });
-            }
-        }
-
-        // ===== KICK =====
-        if (cmd === 'kick') {
-
-            if (!interaction.member.permissions.has(PermissionsBitField.Flags.KickMembers)) {
-
-                return interaction.reply({
-                    content: "No permission.",
-                    ephemeral: true
+                    content:
+`Roblox Version: \`${res.data.clientVersionUpload}\``
                 });
             }
 
-            const user = interaction.options.getUser('user');
+            // ===== BAN =====
+            if (cmd === 'ban') {
 
-            try {
+                const user =
+                    interaction.options.getUser(
+                        'user'
+                    );
 
-                const member = await interaction.guild.members.fetch(user.id);
+                const member =
+                    await interaction.guild.members.fetch(
+                        user.id
+                    );
 
-                if (!member.kickable) {
+                await member.ban();
 
-                    return interaction.reply({
-                        content: "I cannot kick this user.",
-                        ephemeral: true
-                    });
-                }
+                return interaction.reply(
+`${user.tag} banned.`
+                );
+            }
+
+            // ===== UNBAN =====
+            if (cmd === 'unban') {
+
+                const userId =
+                    interaction.options.getString(
+                        'userid'
+                    );
+
+                await interaction.guild.members.unban(
+                    userId
+                );
+
+                return interaction.reply(
+`Unbanned ${userId}`
+                );
+            }
+
+            // ===== KICK =====
+            if (cmd === 'kick') {
+
+                const user =
+                    interaction.options.getUser(
+                        'user'
+                    );
+
+                const member =
+                    await interaction.guild.members.fetch(
+                        user.id
+                    );
 
                 await member.kick();
 
-                return interaction.reply({
-                    content: `${user.tag} kicked.`
-                });
-
-            } catch {
-
-                return interaction.reply({
-                    content: "Failed to kick user.",
-                    ephemeral: true
-                });
-            }
-        }
-
-        // ===== TIMEOUT =====
-        if (cmd === 'timeout') {
-
-            if (!interaction.member.permissions.has(PermissionsBitField.Flags.ModerateMembers)) {
-
-                return interaction.reply({
-                    content: "No permission.",
-                    ephemeral: true
-                });
+                return interaction.reply(
+`${user.tag} kicked.`
+                );
             }
 
-            const user = interaction.options.getUser('user');
-            const minutes = interaction.options.getInteger('minutes');
+            // ===== TIMEOUT =====
+            if (cmd === 'timeout') {
 
-            const member = await interaction.guild.members.fetch(user.id);
+                const user =
+                    interaction.options.getUser(
+                        'user'
+                    );
 
-            await member.timeout(minutes * 60000);
+                const minutes =
+                    interaction.options.getInteger(
+                        'minutes'
+                    );
 
-            return interaction.reply(
-                `${user.tag} timed out for ${minutes} minutes.`
-            );
-        }
+                const member =
+                    await interaction.guild.members.fetch(
+                        user.id
+                    );
 
-        // ===== INVITE =====
-        if (cmd === 'invite') {
+                await member.timeout(
+                    minutes * 60000
+                );
 
-            const userId = interaction.options.getString('userid');
+                return interaction.reply(
+`${user.tag} timed out for ${minutes} minutes.`
+                );
+            }
 
-            try {
+            // ===== INVITE =====
+            if (cmd === 'invite') {
 
-                const user = await client.users.fetch(userId);
+                const userId =
+                    interaction.options.getString(
+                        'userid'
+                    );
+
+                const user =
+                    await client.users.fetch(
+                        userId
+                    );
 
                 await user.send(
 `You've been invited!
@@ -337,181 +559,171 @@ https://discord.gg/eZp6rrMraK`
                 );
 
                 return interaction.reply({
-                    content: `Invite sent to ${user.tag}`,
-                    ephemeral: true
-                });
-
-            } catch {
-
-                return interaction.reply({
-                    content: "Cannot DM this user.",
-                    ephemeral: true
-                });
-            }
-        }
-
-        // ===== DM =====
-        if (cmd === 'dm') {
-
-            const user = interaction.options.getUser('user');
-            const message = interaction.options.getString('message');
-
-            try {
-
-                await user.send(message);
-
-                return interaction.reply({
-                    content: `DM sent to ${user.tag}.`,
-                    ephemeral: true
-                });
-
-            } catch {
-
-                return interaction.reply({
-                    content: "Failed to DM user.",
-                    ephemeral: true
-                });
-            }
-        }
-
-        // ===== DM ALL =====
-        if (cmd === 'dm_all') {
-
-            if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
-
-                return interaction.reply({
-                    content: "Administrator only.",
+                    content:
+`Invite sent to ${user.tag}`,
                     ephemeral: true
                 });
             }
 
-            const dmMessage = interaction.options.getString('message');
+            // ===== DM =====
+            if (cmd === 'dm') {
 
-            await interaction.reply({
-                content: "Sending DMs...",
-                ephemeral: true
-            });
+                const user =
+                    interaction.options.getUser(
+                        'user'
+                    );
 
-            const members = await interaction.guild.members.fetch();
+                const text =
+                    interaction.options.getString(
+                        'message'
+                    );
 
-            let sent = 0;
-            let failed = 0;
+                await user.send(text);
 
-            for (const [, member] of members) {
+                return interaction.reply({
+                    content:
+`DM sent to ${user.tag}.`,
+                    ephemeral: true
+                });
+            }
 
-                if (member.user.bot) continue;
+            // ===== DM ALL =====
+            if (cmd === 'dm_all') {
 
-                try {
+                const dmMessage =
+                    interaction.options.getString(
+                        'message'
+                    );
 
-                    await member.send(dmMessage);
-                    sent++;
+                await interaction.reply({
+                    content:
+                        "Sending DMs...",
+                    ephemeral: true
+                });
 
-                } catch {
+                const members =
+                    await interaction.guild.members.fetch();
 
-                    failed++;
+                let sent = 0;
+                let failed = 0;
+
+                for (const [, member] of members) {
+
+                    if (member.user.bot) continue;
+
+                    try {
+
+                        await member.send(
+                            dmMessage
+                        );
+
+                        sent++;
+
+                    } catch {
+
+                        failed++;
+                    }
                 }
-            }
 
-            await interaction.followUp({
-                content: `Done.\nSent: ${sent}\nFailed: ${failed}`,
-                ephemeral: true
-            });
-        }
-
-        // ===== ANNOUNCE =====
-        if (cmd === 'announce') {
-
-            const channel = interaction.options.getChannel('channel');
-            const message = interaction.options.getString('message');
-
-            try {
-
-                await channel.send(message);
-
-                return interaction.reply({
-                    content: `Announcement sent in ${channel}.`,
-                    ephemeral: true
-                });
-
-            } catch {
-
-                return interaction.reply({
-                    content: "Failed to send announcement.",
-                    ephemeral: true
-                });
-            }
-        }
-
-        // ===== REMOVE ALL MEMBERS WITH ROLE =====
-        if (cmd === 'remove_all_ms_role') {
-
-            if (!interaction.member.permissions.has(PermissionsBitField.Flags.BanMembers)) {
-
-                return interaction.reply({
-                    content: "No permission.",
+                await interaction.followUp({
+                    content:
+`Done.
+Sent: ${sent}
+Failed: ${failed}`,
                     ephemeral: true
                 });
             }
 
-            const role = interaction.options.getRole('role');
+            // ===== ANNOUNCE =====
+            if (cmd === 'announce') {
 
-            await interaction.reply({
-                content: `Removing all members with role: ${role.name}...`,
-                ephemeral: true
-            });
+                const targetChannel =
+                    interaction.options.getChannel(
+                        'channel'
+                    );
 
-            let removed = 0;
-            let failed = 0;
+                const text =
+                    interaction.options.getString(
+                        'message'
+                    );
 
-            await interaction.guild.members.fetch();
-
-            const membersWithRole =
-                interaction.guild.members.cache.filter(member =>
-                    member.roles.cache.has(role.id)
+                await targetChannel.send(
+                    text
                 );
 
-            for (const [, member] of membersWithRole) {
-
-                if (member.user.bot) continue;
-
-                try {
-
-                    await member.ban({
-                        reason: `Mass removed by ${interaction.user.tag}`
-                    });
-
-                    removed++;
-
-                } catch (err) {
-
-                    failed++;
-                    console.log(err);
-                }
+                return interaction.reply({
+                    content:
+`Announcement sent in ${targetChannel}.`,
+                    ephemeral: true
+                });
             }
 
-            await interaction.followUp({
-                content:
-`Finished.
+            // ===== REMOVE ROLE =====
+            if (cmd === 'remove_all_ms_role') {
 
-✅ Removed: ${removed}
-❌ Failed: ${failed}`,
-                ephemeral: true
-            });
-        }
+                const role =
+                    interaction.options.getRole(
+                        'role'
+                    );
 
-    } catch (err) {
+                await interaction.reply({
+                    content:
+`Removing role "${role.name}" from all members...`,
+                    ephemeral: true
+                });
 
-        console.log("Command error:", err);
+                let removed = 0;
 
-        if (!interaction.replied) {
+                await interaction.guild.members.fetch();
 
-            interaction.reply({
-                content: "Error executing command.",
-                ephemeral: true
-            });
+                const membersWithRole =
+                    interaction.guild.members.cache.filter(
+                        member =>
+                            member.roles.cache.has(
+                                role.id
+                            )
+                    );
+
+                for (const [, member] of membersWithRole) {
+
+                    if (member.user.bot) continue;
+
+                    try {
+
+                        await member.roles.remove(
+                            role
+                        );
+
+                        removed++;
+
+                    } catch {}
+                }
+
+                await interaction.followUp({
+                    content:
+`✅ Removed role from ${removed} members.`,
+                    ephemeral: true
+                });
+            }
+
+        } catch (err) {
+
+            console.log(
+                "Command error:",
+                err
+            );
+
+            if (!interaction.replied) {
+
+                interaction.reply({
+                    content:
+                        "Error executing command.",
+                    ephemeral: true
+                });
+            }
         }
     }
-});
+);
 
 // ================= LOGIN =================
 client.login(process.env.TOKEN);
