@@ -1,8 +1,15 @@
 require('dotenv').config();
 
-const { REST, Routes, SlashCommandBuilder } = require('discord.js');
+const {
+    REST,
+    Routes,
+    SlashCommandBuilder,
+    PermissionFlagsBits
+} = require('discord.js');
 
-const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
+const rest =
+    new REST({ version: '10' })
+        .setToken(process.env.TOKEN);
 
 console.log("Starting command deployment...");
 
@@ -26,6 +33,9 @@ const commands = [
     new SlashCommandBuilder()
         .setName('ban')
         .setDescription('Ban a user')
+        .setDefaultMemberPermissions(
+            PermissionFlagsBits.BanMembers
+        )
         .addUserOption(option =>
             option.setName('user')
                 .setDescription('User to ban')
@@ -41,6 +51,9 @@ const commands = [
     new SlashCommandBuilder()
         .setName('unban')
         .setDescription('Unban a user')
+        .setDefaultMemberPermissions(
+            PermissionFlagsBits.BanMembers
+        )
         .addStringOption(option =>
             option.setName('userid')
                 .setDescription('User ID')
@@ -51,6 +64,9 @@ const commands = [
     new SlashCommandBuilder()
         .setName('kick')
         .setDescription('Kick a user')
+        .setDefaultMemberPermissions(
+            PermissionFlagsBits.KickMembers
+        )
         .addUserOption(option =>
             option.setName('user')
                 .setDescription('User to kick')
@@ -66,6 +82,9 @@ const commands = [
     new SlashCommandBuilder()
         .setName('timeout')
         .setDescription('Timeout a user')
+        .setDefaultMemberPermissions(
+            PermissionFlagsBits.ModerateMembers
+        )
         .addUserOption(option =>
             option.setName('user')
                 .setDescription('User to timeout')
@@ -104,7 +123,12 @@ const commands = [
         .addStringOption(option =>
             option.setName('message')
                 .setDescription('Message')
-                .setRequired(true)
+                .setRequired(false)
+        )
+        .addAttachmentOption(option =>
+            option.setName('file')
+                .setDescription('File')
+                .setRequired(false)
         ),
 
     // ===== DM ALL =====
@@ -114,7 +138,12 @@ const commands = [
         .addStringOption(option =>
             option.setName('message')
                 .setDescription('Message')
-                .setRequired(true)
+                .setRequired(false)
+        )
+        .addAttachmentOption(option =>
+            option.setName('file')
+                .setDescription('File')
+                .setRequired(false)
         ),
 
     // ===== ANNOUNCE =====
@@ -200,7 +229,7 @@ const commands = [
     // ===== REMOVE ROLE =====
     new SlashCommandBuilder()
         .setName('remove_all_ms_role')
-        .setDescription('Remove the selected role from all members')
+        .setDescription('Remove selected role from all members')
         .addRoleOption(option =>
             option.setName('role')
                 .setDescription('Target role')
@@ -224,48 +253,26 @@ const commands = [
 
 ].map(cmd => cmd.toJSON());
 
-// ================= CLEAR OLD GUILD COMMANDS =================
-async function clearGuildCommands() {
+// ================= DEPLOY =================
+(async () => {
 
     try {
 
-        console.log("Clearing old guild commands...");
-
-        await rest.put(
-            Routes.applicationGuildCommands(
-                process.env.CLIENT_ID,
-                process.env.GUILD_ID
-            ),
-            { body: [] }
+        console.log(
+            "Refreshing global slash commands..."
         );
-
-        console.log("Old guild commands cleared.");
-
-    } catch (err) {
-
-        console.error(
-            "Failed to clear guild commands:",
-            err
-        );
-    }
-}
-
-// ================= DEPLOY GLOBAL COMMANDS =================
-async function deployGlobalCommands() {
-
-    try {
-
-        console.log("Deploying global commands...");
 
         await rest.put(
             Routes.applicationCommands(
                 process.env.CLIENT_ID
             ),
-            { body: commands }
+            {
+                body: commands
+            }
         );
 
         console.log(
-            "Global commands deployed successfully!"
+            "Global slash commands deployed successfully!"
         );
 
     } catch (err) {
@@ -275,13 +282,5 @@ async function deployGlobalCommands() {
             err
         );
     }
-}
-
-// ================= RUN =================
-(async () => {
-
-    await clearGuildCommands();
-
-    await deployGlobalCommands();
 
 })();
