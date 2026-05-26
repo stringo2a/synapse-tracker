@@ -9,6 +9,7 @@ console.log("Starting command deployment...");
 // ================= COMMANDS =================
 const commands = [
 
+    // ===== BASIC =====
     new SlashCommandBuilder()
         .setName('check')
         .setDescription('Check Roblox version'),
@@ -21,6 +22,7 @@ const commands = [
         .setName('members')
         .setDescription('Get server member count'),
 
+    // ===== BAN =====
     new SlashCommandBuilder()
         .setName('ban')
         .setDescription('Ban a user')
@@ -28,8 +30,14 @@ const commands = [
             option.setName('user')
                 .setDescription('User to ban')
                 .setRequired(true)
+        )
+        .addStringOption(option =>
+            option.setName('reason')
+                .setDescription('Reason')
+                .setRequired(false)
         ),
 
+    // ===== UNBAN =====
     new SlashCommandBuilder()
         .setName('unban')
         .setDescription('Unban a user')
@@ -39,6 +47,7 @@ const commands = [
                 .setRequired(true)
         ),
 
+    // ===== KICK =====
     new SlashCommandBuilder()
         .setName('kick')
         .setDescription('Kick a user')
@@ -46,8 +55,14 @@ const commands = [
             option.setName('user')
                 .setDescription('User to kick')
                 .setRequired(true)
+        )
+        .addStringOption(option =>
+            option.setName('reason')
+                .setDescription('Reason')
+                .setRequired(false)
         ),
 
+    // ===== TIMEOUT =====
     new SlashCommandBuilder()
         .setName('timeout')
         .setDescription('Timeout a user')
@@ -60,8 +75,14 @@ const commands = [
             option.setName('minutes')
                 .setDescription('Minutes')
                 .setRequired(true)
+        )
+        .addStringOption(option =>
+            option.setName('reason')
+                .setDescription('Reason')
+                .setRequired(false)
         ),
 
+    // ===== INVITE =====
     new SlashCommandBuilder()
         .setName('invite')
         .setDescription('Send invite in DM')
@@ -71,6 +92,7 @@ const commands = [
                 .setRequired(true)
         ),
 
+    // ===== DM =====
     new SlashCommandBuilder()
         .setName('dm')
         .setDescription('DM a member')
@@ -85,6 +107,7 @@ const commands = [
                 .setRequired(true)
         ),
 
+    // ===== DM ALL =====
     new SlashCommandBuilder()
         .setName('dm_all')
         .setDescription('DM all members')
@@ -94,6 +117,7 @@ const commands = [
                 .setRequired(true)
         ),
 
+    // ===== ANNOUNCE =====
     new SlashCommandBuilder()
         .setName('announce')
         .setDescription('Send announcement')
@@ -108,6 +132,7 @@ const commands = [
                 .setRequired(true)
         ),
 
+    // ===== ADD APP =====
     new SlashCommandBuilder()
         .setName('add_app')
         .setDescription('Add an app')
@@ -117,10 +142,12 @@ const commands = [
                 .setRequired(true)
         ),
 
+    // ===== LIST APPS =====
     new SlashCommandBuilder()
         .setName('list_apps')
         .setDescription('List all apps'),
 
+    // ===== REMOVE APP =====
     new SlashCommandBuilder()
         .setName('remove_app')
         .setDescription('Remove app')
@@ -130,6 +157,7 @@ const commands = [
                 .setRequired(true)
         ),
 
+    // ===== RENAME APP =====
     new SlashCommandBuilder()
         .setName('rename_app')
         .setDescription('Rename app')
@@ -144,6 +172,7 @@ const commands = [
                 .setRequired(true)
         ),
 
+    // ===== SET STATUS =====
     new SlashCommandBuilder()
         .setName('set_status')
         .setDescription('Set app status')
@@ -158,6 +187,7 @@ const commands = [
                 .setRequired(true)
         ),
 
+    // ===== BULK STATUS =====
     new SlashCommandBuilder()
         .setName('bulk_status')
         .setDescription('Set all apps status')
@@ -166,14 +196,18 @@ const commands = [
                 .setDescription('online/offline/updating')
                 .setRequired(true)
         ),
-            new SlashCommandBuilder()
-    .setName('remove_all_ms_role')
-    .setDescription('Remove the selected role from all members')
-    .addRoleOption(option =>
-        option.setName('role')
-            .setDescription('Target role')
-            .setRequired(true)
-    ),
+
+    // ===== REMOVE ROLE =====
+    new SlashCommandBuilder()
+        .setName('remove_all_ms_role')
+        .setDescription('Remove the selected role from all members')
+        .addRoleOption(option =>
+            option.setName('role')
+                .setDescription('Target role')
+                .setRequired(true)
+        ),
+
+    // ===== SET ANNOUNCEMENT =====
     new SlashCommandBuilder()
         .setName('set_announcement')
         .setDescription('Set app announcement')
@@ -209,7 +243,10 @@ async function clearGuildCommands() {
 
     } catch (err) {
 
-        console.error("Failed to clear guild commands:", err);
+        console.error(
+            "Failed to clear guild commands:",
+            err
+        );
     }
 }
 
@@ -227,11 +264,16 @@ async function deployGlobalCommands() {
             { body: commands }
         );
 
-        console.log("Global commands deployed successfully!");
+        console.log(
+            "Global commands deployed successfully!"
+        );
 
     } catch (err) {
 
-        console.error("Deploy error:", err);
+        console.error(
+            "Deploy error:",
+            err
+        );
     }
 }
 
@@ -239,6 +281,7 @@ async function deployGlobalCommands() {
 (async () => {
 
     await clearGuildCommands();
+
     await deployGlobalCommands();
 
 })();
