@@ -446,13 +446,48 @@ client.on(
 
         if (message.author.bot) return;
 
-        if (!message.content.startsWith('.')) return;
+        const prefix = '.';
+
+        if (
+            !message.content.startsWith(prefix)
+        ) return;
 
         const args =
-            message.content.slice(1).trim().split(/ +/);
+            message.content
+                .slice(prefix.length)
+                .trim()
+                .split(/ +/);
 
         const cmd =
-            args.shift().toLowerCase();
+            args.shift()?.toLowerCase();
+
+        // ================= GET USER =================
+        async function getUser(arg) {
+
+            if (!arg) return null;
+
+            const mention =
+                arg.match(/^<@!?(\d+)>$/);
+
+            const userId =
+                mention
+                    ? mention[1]
+                    : arg;
+
+            try {
+
+                const member =
+                    await message.guild.members.fetch(
+                        userId
+                    );
+
+                return member;
+
+            } catch {
+
+                return null;
+            }
+        }
 
         // ===== HELP =====
         if (cmd === 'help') {
@@ -461,15 +496,15 @@ client.on(
 .help
 .check
 .members
-.ban @user [reason]
-.unban [userid]
-.kick @user [reason]
-.timeout @user [minutes] [reason]
-.invite [userid]
-.dm @user [message]
-.dm_all [message]
-.announce [channelid] [message]
-.remove_all_ms_role [roleid]
+.ban
+.unban
+.kick
+.timeout
+.invite
+.dm
+.dm_all
+.announce
+.remove_all_ms_role
             `);
         }
 
@@ -498,7 +533,7 @@ client.on(
             } catch {
 
                 return message.reply(
-'❌ Failed to check version.'
+                    '❌ Failed to fetch version.'
                 );
             }
         }
@@ -509,12 +544,12 @@ client.on(
             try {
 
                 const member =
-                    message.mentions.members.first();
+                    await getUser(args[0]);
 
                 if (!member) {
 
                     return message.reply(
-'❌ Mention a user.'
+                        '❌ Could not find user.'
                     );
                 }
 
@@ -523,17 +558,18 @@ client.on(
                     'No reason provided';
 
                 await member.ban({
-                    reason: reason
+                    reason:
+`You have been banned. Reason: ${reason}`
                 });
 
                 return message.reply(
-`✅ ${member.user.tag} has been banned. Reason: ${reason}`
+`✅ ${member.user.tag} has been banned.`
                 );
 
             } catch {
 
                 return message.reply(
-'❌ Could not ban user.'
+                    '❌ Could not ban user.'
                 );
             }
         }
@@ -549,7 +585,7 @@ client.on(
                 if (!userId) {
 
                     return message.reply(
-'❌ Provide user ID.'
+                        '❌ Provide user ID.'
                     );
                 }
 
@@ -564,7 +600,7 @@ client.on(
             } catch {
 
                 return message.reply(
-'❌ Could not unban user.'
+                    '❌ Could not unban user.'
                 );
             }
         }
@@ -575,12 +611,12 @@ client.on(
             try {
 
                 const member =
-                    message.mentions.members.first();
+                    await getUser(args[0]);
 
                 if (!member) {
 
                     return message.reply(
-'❌ Mention a user.'
+                        '❌ Could not find user.'
                     );
                 }
 
@@ -588,16 +624,18 @@ client.on(
                     args.slice(1).join(' ') ||
                     'No reason provided';
 
-                await member.kick(reason);
+                await member.kick(
+`You have been kicked. Reason: ${reason}`
+                );
 
                 return message.reply(
-`✅ ${member.user.tag} has been kicked. Reason: ${reason}`
+`✅ ${member.user.tag} has been kicked.`
                 );
 
             } catch {
 
                 return message.reply(
-'❌ Failed to kick user.'
+                    '❌ Failed to kick user.'
                 );
             }
         }
@@ -608,22 +646,22 @@ client.on(
             try {
 
                 const member =
-                    message.mentions.members.first();
+                    await getUser(args[0]);
 
                 if (!member) {
 
                     return message.reply(
-'❌ Mention a user.'
+                        '❌ Could not find user.'
                     );
                 }
 
                 const minutes =
                     parseInt(args[1]);
 
-                if (!minutes) {
+                if (isNaN(minutes)) {
 
                     return message.reply(
-'❌ Provide minutes.'
+                        '❌ Invalid minutes.'
                     );
                 }
 
@@ -633,17 +671,17 @@ client.on(
 
                 await member.timeout(
                     minutes * 60000,
-                    reason
+`You have been timed out. Reason: ${reason}`
                 );
 
                 return message.reply(
-`✅ ${member.user.tag} has been timed out for ${minutes} minutes. Reason: ${reason}`
+`✅ ${member.user.tag} timed out for ${minutes} minutes.`
                 );
 
             } catch {
 
                 return message.reply(
-'❌ Failed to timeout user.'
+                    '❌ Failed to timeout user.'
                 );
             }
         }
@@ -674,7 +712,7 @@ https://discord.gg/eZp6rrMraK`
             } catch {
 
                 return message.reply(
-'❌ Failed to send invite.'
+                    '❌ Failed to send invite.'
                 );
             }
         }
@@ -684,36 +722,90 @@ https://discord.gg/eZp6rrMraK`
 
             try {
 
-                const user =
-                    message.mentions.users.first();
+                const target =
+                    args.shift();
+
+                if (!target) {
+
+                    return message.reply(
+                        '❌ Provide a user.'
+                    );
+                }
+
+                let user;
+
+                // ===== USER BY ID =====
+                if (/^\d+$/.test(target)) {
+
+                    user =
+                        await client.users.fetch(
+                            target
+                        ).catch(() => null);
+
+                } else {
+
+                    // ===== USER BY MENTION =====
+                    user =
+                        message.mentions.users.first();
+                }
 
                 if (!user) {
 
                     return message.reply(
-'❌ Mention a user.'
+                        '❌ Could not find user.'
                     );
                 }
 
-                const text =
-                    args.slice(1).join(' ');
+                const dmMessage =
+                    args.join(' ');
 
-                if (!text) {
+                const attachment =
+                    message.attachments.first();
+
+                if (
+                    !dmMessage &&
+                    !attachment
+                ) {
 
                     return message.reply(
-'❌ Provide a message.'
+                        '❌ Provide message or file.'
                     );
                 }
 
-                await user.send(text);
+                // ===== SEND LONG TEXT =====
+                if (dmMessage) {
+
+                    const chunks =
+                        dmMessage.match(
+                            /[\s\S]{1,1900}/g
+                        );
+
+                    for (const chunk of chunks) {
+
+                        await user.send(chunk);
+                    }
+                }
+
+                // ===== SEND FILE =====
+                if (attachment) {
+
+                    await user.send({
+                        files: [
+                            attachment.url
+                        ]
+                    });
+                }
 
                 return message.reply(
 `✅ DM sent to ${user.tag}.`
                 );
 
-            } catch {
+            } catch (err) {
+
+                console.log(err);
 
                 return message.reply(
-'❌ Failed to DM user.'
+                    '❌ Failed to DM user.'
                 );
             }
         }
@@ -726,10 +818,16 @@ https://discord.gg/eZp6rrMraK`
                 const dmMessage =
                     args.join(' ');
 
-                if (!dmMessage) {
+                const attachment =
+                    message.attachments.first();
+
+                if (
+                    !dmMessage &&
+                    !attachment
+                ) {
 
                     return message.reply(
-'❌ Provide a message.'
+                        '❌ Provide message or file.'
                     );
                 }
 
@@ -750,9 +848,31 @@ https://discord.gg/eZp6rrMraK`
 
                     try {
 
-                        await member.send(
-                            dmMessage
-                        );
+                        // ===== TEXT =====
+                        if (dmMessage) {
+
+                            const chunks =
+                                dmMessage.match(
+                                    /[\s\S]{1,1900}/g
+                                );
+
+                            for (const chunk of chunks) {
+
+                                await member.send(
+                                    chunk
+                                );
+                            }
+                        }
+
+                        // ===== FILE =====
+                        if (attachment) {
+
+                            await member.send({
+                                files: [
+                                    attachment.url
+                                ]
+                            });
+                        }
 
                         sent++;
 
@@ -763,15 +883,18 @@ https://discord.gg/eZp6rrMraK`
                 }
 
                 return message.reply(
-`Done.
+`✅ Done.
+
 Sent: ${sent}
 Failed: ${failed}`
                 );
 
-            } catch {
+            } catch (err) {
+
+                console.log(err);
 
                 return message.reply(
-'❌ Failed to DM all.'
+                    '❌ Failed to DM all.'
                 );
             }
         }
@@ -788,14 +911,14 @@ Failed: ${failed}`
                     args.slice(1).join(' ');
 
                 const channel =
-                    client.channels.cache.get(
+                    message.guild.channels.cache.get(
                         channelId
                     );
 
                 if (!channel) {
 
                     return message.reply(
-'❌ Invalid channel ID.'
+                        '❌ Invalid channel.'
                     );
                 }
 
@@ -808,74 +931,7 @@ Failed: ${failed}`
             } catch {
 
                 return message.reply(
-'❌ Failed to send announcement.'
-                );
-            }
-        }
-
-        // ===== REMOVE ROLE =====
-        if (
-            cmd ===
-            'remove_all_ms_role'
-        ) {
-
-            try {
-
-                const roleId =
-                    args[0];
-
-                const role =
-                    message.guild.roles.cache.get(
-                        roleId
-                    );
-
-                if (!role) {
-
-                    return message.reply(
-'❌ Invalid role ID.'
-                    );
-                }
-
-                let removed = 0;
-
-                await message.guild.members.fetch();
-
-                const membersWithRole =
-                    message.guild.members.cache.filter(
-                        member =>
-                            member.roles.cache.has(
-                                role.id
-                            )
-                    );
-
-                for (
-                    const [, member]
-                    of membersWithRole
-                ) {
-
-                    if (
-                        member.user.bot
-                    ) continue;
-
-                    try {
-
-                        await member.roles.remove(
-                            role
-                        );
-
-                        removed++;
-
-                    } catch {}
-                }
-
-                return message.reply(
-`✅ Removed role from ${removed} members.`
-                );
-
-            } catch {
-
-                return message.reply(
-'❌ Failed to remove role.'
+                    '❌ Failed to send announcement.'
                 );
             }
         }
