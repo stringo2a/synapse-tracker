@@ -192,7 +192,7 @@ async function checkVelocityUpdate() {
 ':white_check_mark: Synapse X Updated!'
                 )
                 .setDescription(
-'Relaunch Synapse or grab a fresh install in #synapse-v2'
+'Relaunch Synapse or grab a fresh install in <#1497931009554124862>'
                 )
                 .addFields(
                     {
@@ -353,7 +353,7 @@ client.once('ready', async () => {
 `${client.user.tag} is online`
     );
 
-    client.user.setStatus('idle');
+    client.user.setStatus('do not disturb');
 
     checkRobloxUpdate();
 
